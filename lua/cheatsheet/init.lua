@@ -14,40 +14,8 @@ M.setup = function(opts) config.setup(opts) end
 -- @return array of filepaths
 M.get_cheatsheet_files = function(opts)
     opts = opts or config.options
-
-    -- see include argument of utils.filter_insert
-    local plugin_include = {}
-    if opts.include_only_installed_plugins then
-        local rtp_dirs = {}
-        for _, dir in pairs(vim.api.nvim_list_runtime_paths()) do
-            table.insert(rtp_dirs, dir:match(".+/(.+)"))
-        end
-        plugin_include = { enabled = rtp_dirs }
-    else
-        plugin_include = true
-    end
-
-    local cheatsheet_name_pat = '.+/cheatsheets/cheatsheet%-(.+)%.txt'
-    local cheatsheet_plugin_name_pat =
-        '.+/cheatsheets/plugins/cheatsheet%-(.+)%.txt'
-
-    local bundled_plugins = {}
-    filter_insert(
-        bundled_plugins, utils.get_bundled_plugin_cheatsheets(),
-            cheatsheet_plugin_name_pat, plugin_include
-    )
-
-    local cheats = vim.api.nvim_get_runtime_file("cheatsheet.txt", true)
-    local bundled = utils.get_bundled_cheatsheets()
-    filter_insert(cheats, bundled, cheatsheet_name_pat, opts.bundled_cheatsheets)
-
-    filter_insert(
-        cheats, bundled_plugins, cheatsheet_plugin_name_pat,
-            opts.bundled_plugin_cheatsheets
-    )
-
-    -- https://github.com/neovim/neovim/issues/14294
     -- returned table may have duplicated entries
+    local cheats = {vim.fn.stdpath("config") .. "/cheatsheet.txt"}
     return utils.dedupe_array(cheats)
 end
 
@@ -64,14 +32,12 @@ M._loaded_cheats = {}
 M.add_cheat = function(description, cheatcode, section, tags)
     section = section or "default"
     tags = tags or {}
-    table.insert(
-        M._loaded_cheats, {
-            section = section,
-            description = description,
-            tags = tags,
-            cheatcode = cheatcode,
-        }
-    )
+    table.insert(M._loaded_cheats, {
+        section = section,
+        description = description,
+        tags = tags,
+        cheatcode = cheatcode
+    })
 end
 
 -- Aggregates cheats from cheatsheets and returns a structured repr.
@@ -109,14 +75,12 @@ M.get_cheats = function(opts)
             -- parse normal cheatline
             local description, cheatcode = line:match(cheatline_pat)
             if description and cheatcode then
-                table.insert(
-                    cheats, {
-                        section = section,
-                        description = description,
-                        tags = tags,
-                        cheatcode = cheatcode,
-                    }
-                )
+                table.insert(cheats, {
+                    section = section,
+                    description = description,
+                    tags = tags,
+                    cheatcode = cheatcode
+                })
             end
         end
     end
@@ -145,7 +109,7 @@ M.show_cheatsheet_float = function(opts)
         col = left,
         width = width,
         height = height,
-        border = "single",
+        border = "single"
     }
 
     local winhandle = vim.api.nvim_open_win(bufhandle, true, float_opts)
@@ -158,11 +122,9 @@ M.show_cheatsheet_float = function(opts)
     end
     vim.cmd("normal! gg0")
 
-    vim.api.nvim_buf_set_virtual_text(
-        bufhandle, 0, 0,
-            { { "Press [q] to close, [e] to edit your cheatsheet", "PreProc" } },
-            {}
-    )
+    vim.api.nvim_buf_set_virtual_text(bufhandle, 0, 0, {
+        {"Press [q] to close, [e] to edit your cheatsheet", "PreProc"}
+    }, {})
 
     vim.bo.filetype = 'cheatsheet'
     vim.bo.buftype = 'nofile' -- do not consider buffer contents as a file
@@ -172,13 +134,10 @@ M.show_cheatsheet_float = function(opts)
     vim.wo.number = false
     vim.wo.relativenumber = false
 
-    vim.api.nvim_buf_set_keymap(
-        0, 'n', 'q', ':close<CR>', { noremap = true, silent = true }
-    )
-    vim.api.nvim_buf_set_keymap(
-        0, 'n', 'e', ':close<CR>:CheatsheetEdit<CR>',
-            { noremap = true, silent = true }
-    )
+    vim.api.nvim_buf_set_keymap(0, 'n', 'q', ':close<CR>',
+                                {noremap = true, silent = true})
+    vim.api.nvim_buf_set_keymap(0, 'n', 'e', ':close<CR>:CheatsheetEdit<CR>',
+                                {noremap = true, silent = true})
 end
 
 -- Use Telescope to show and filter cheatsheets
